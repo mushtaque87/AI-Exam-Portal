@@ -31,6 +31,10 @@ const seedInitialData = async () => {
             const sampleExam = await Exam.create({
                 title: 'Sample Mathematics Exam',
                 description: 'A sample exam to test the system functionality',
+                duration: 60,
+                passingScore: 70,
+                isActive: true,
+                instructions: 'This is a sample exam. Please answer all questions carefully.',
                 date: new Date()
             });
 
@@ -99,7 +103,7 @@ const seedInitialData = async () => {
             console.log('✅ Sample questions created');
 
             // Update exam question count
-            // await sampleExam.update({ totalQuestions: sampleQuestions.length });
+            await sampleExam.update({ totalQuestions: sampleQuestions.length });
         } else {
             console.log('ℹ️ Sample exam already exists');
         }
