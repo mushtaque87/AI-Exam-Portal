@@ -10,6 +10,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import StudentDashboard from './components/student/StudentDashboard';
 import ExamList from './components/admin/ExamList';
 import UserList from './components/admin/UserList';
+import AddUser from './components/admin/AddUser';
 import ResultsList from './components/admin/ResultsList';
 import StudentExams from './components/student/StudentExams';
 import TakeExam from './components/student/TakeExam';
@@ -116,6 +117,10 @@ function App() {
                             path="/admin/users"
                             element={user?.role === 'admin' ? <UserList /> : <Navigate to="/" />}
                         />
+                            <Route
+                                path="/admin/users/add"
+                                element={user?.role === 'admin' ? <AddUser /> : <Navigate to="/" />}
+                            />
                         <Route
                             path="/admin/results"
                             element={user?.role === 'admin' ? <ResultsList /> : <Navigate to="/" />}
