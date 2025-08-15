@@ -1,12 +1,14 @@
 import React from 'react';
 import { FaUsers, FaPlus } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const UserList = () => {
+    const navigate = useNavigate();
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h1 style={{ color: '#1e293b' }}>User Management</h1>
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" onClick={() => navigate('/admin/users/add')}>
                     <FaPlus />
                     Add New User
                 </button>
