@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaPlus, FaEdit, FaTrash, FaUpload } from 'react-icons/fa';
@@ -21,13 +21,7 @@ const QuestionList = ({ examId, examTitle }) => {
         explanation: ''
     });
 
-    useEffect(() => {
-        if (examId) {
-            fetchQuestions();
-        }
-    }, [examId]);
-
-    const fetchQuestions = async () => {
+    const fetchQuestions = useCallback(async () => {
         try {
             const response = await axios.get(`/api/questions/exam/${examId}`);
             setQuestions(response.data.questions);
@@ -37,7 +31,13 @@ const QuestionList = ({ examId, examTitle }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [examId]);
+
+    useEffect(() => {
+        if (examId) {
+            fetchQuestions();
+        }
+    }, [examId, fetchQuestions]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

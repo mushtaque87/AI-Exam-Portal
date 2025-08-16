@@ -169,7 +169,7 @@ router.put('/:id', [
 });
 
 // @route   DELETE /api/users/:id
-// @desc    Delete user (soft delete by setting isActive to false)
+// @desc    Delete user (hard delete - completely remove from database)
 // @access  Private (Admin)
 router.delete('/:id', async (req, res) => {
     try {
@@ -183,9 +183,13 @@ router.delete('/:id', async (req, res) => {
             return res.status(400).json({ message: 'Cannot delete your own account' });
         }
 
-        await user.update({ isActive: false });
+        // Perform hard delete - delete all related records first
+        // Order matters due to foreign key constraints
+        await ExamResult.destroy({ where: { userId: user.id } });
+        await UserExamAssignment.destroy({ where: { userId: user.id } });
+        await user.destroy();
 
-        res.json({ message: 'User deactivated successfully' });
+        res.json({ message: 'User deleted successfully' });
     } catch (error) {
         console.error('Delete user error:', error);
         res.status(500).json({ message: 'Server error' });

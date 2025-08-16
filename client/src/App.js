@@ -43,8 +43,15 @@ function App() {
             setUser(response.data.user);
         } catch (error) {
             console.error('Error fetching user:', error);
-            localStorage.removeItem('token');
-            delete axios.defaults.headers.common['Authorization'];
+            // Logout if it's an authentication error
+            if (error.response && error.response.status === 401) {
+                localStorage.removeItem('token');
+                delete axios.defaults.headers.common['Authorization'];
+                // If the error message indicates the user was deleted, show a specific message
+                if (error.response.data.message && error.response.data.message.includes('deleted')) {
+                    toast.error('Your account has been deleted. Please contact administrator.');
+                }
+            }
         } finally {
             setLoading(false);
         }
@@ -64,6 +71,11 @@ function App() {
         } catch (error) {
             const message = error.response?.data?.message || 'Login failed';
             toast.error(message);
+            // If the error indicates the user account has been deleted, clear any existing token
+            if (message.includes('deleted')) {
+                localStorage.removeItem('token');
+                delete axios.defaults.headers.common['Authorization'];
+            }
             return false;
         }
     };

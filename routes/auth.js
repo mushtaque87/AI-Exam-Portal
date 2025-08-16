@@ -75,8 +75,12 @@ router.post('/login', [
 
         // Find user by email
         const user = await User.findOne({ where: { email } });
-        if (!user || !user.isActive) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials. User account may have been deleted.' });
+        }
+
+        if (!user.isActive) {
+            return res.status(401).json({ message: 'User account is inactive. Please contact administrator.' });
         }
 
         // Check password

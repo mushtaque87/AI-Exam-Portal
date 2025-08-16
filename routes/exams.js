@@ -10,7 +10,8 @@ const {
     Question,
     User,
     UserExamAssignment,
-    ExamResult
+    ExamResult,
+    ExamResponse
 } = require('../models');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
@@ -66,7 +67,8 @@ router.get('/', [
         }
 
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        // Set a higher default limit to ensure all exams are returned
+        const limit = parseInt(req.query.limit) || 100;
         const offset = (page - 1) * limit;
         const { search, isActive } = req.query;
 
@@ -168,7 +170,8 @@ router.post('/', [
     body('passingScore').optional().isInt({ min: 0, max: 100 }).withMessage('Passing score must be between 0 and 100'),
     body('startDate').optional(),
     body('endDate').optional(),
-    body('instructions').optional().trim()
+    body('instructions').optional().trim(),
+    body('date').optional()
 ], async (req, res) => {
     try {
         const errors = validationResult(req);
@@ -184,7 +187,8 @@ router.post('/', [
             passingScore = 70,
             startDate,
             endDate,
-            instructions
+            instructions,
+            date
         } = req.body;
 
         // Handle date conversion more gracefully
@@ -213,7 +217,8 @@ router.post('/', [
             passingScore,
             startDate: startDateObj,
             endDate: endDateObj,
-            instructions
+            instructions,
+            date: startDateObj || new Date() // Use startDate or current date as default
         });
 
         res.status(201).json({
@@ -283,7 +288,7 @@ router.put('/:id', [
 });
 
 // @route   DELETE /api/exams/:id
-// @desc    Delete exam (soft delete by setting isActive to false)
+// @desc    Delete exam (hard delete - completely remove from database)
 // @access  Private (Admin)
 router.delete('/:id', async (req, res) => {
     try {
@@ -292,20 +297,15 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ message: 'Exam not found' });
         }
 
-        // Check if exam has results
-        const hasResults = await ExamResult.findOne({
-            where: { examId: exam.id }
-        });
+        // Perform hard delete - delete all related records first
+        // Order matters due to foreign key constraints
+        await ExamResult.destroy({ where: { examId: exam.id } });
+        await ExamResponse.destroy({ where: { examId: exam.id } });
+        await UserExamAssignment.destroy({ where: { examId: exam.id } });
+        await Question.destroy({ where: { examId: exam.id } });
+        await exam.destroy();
 
-        if (hasResults) {
-            return res.status(400).json({
-                message: 'Cannot delete exam that has results. Deactivate instead.'
-            });
-        }
-
-        await exam.update({ isActive: false });
-
-        res.json({ message: 'Exam deactivated successfully' });
+        res.json({ message: 'Exam deleted successfully' });
     } catch (error) {
         console.error('Delete exam error:', error);
         res.status(500).json({ message: 'Server error' });
@@ -435,6 +435,7 @@ router.post('/:id/import-questions', upload.single('file'), async (req, res) => 
         // Process questions
         const questions = [];
         const errors = [];
+        const skippedRows = [];
 
         for (let i = 0; i < data.length; i++) {
             const row = data[i];
@@ -443,13 +444,13 @@ router.post('/:id/import-questions', upload.single('file'), async (req, res) => 
             try {
                 // Validate data
                 if (!row.Question || !row.OptionA || !row.OptionB || !row.OptionC || !row.OptionD) {
-                    errors.push(`Row ${rowNumber}: All fields are required`);
+                    skippedRows.push(`Row ${rowNumber}: Skipping due to missing required fields`);
                     continue;
                 }
 
-                const correctAnswer = row.CorrectAnswer.toString().toUpperCase();
+                const correctAnswer = row.CorrectAnswer ? row.CorrectAnswer.toString().toUpperCase() : '';
                 if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) {
-                    errors.push(`Row ${rowNumber}: CorrectAnswer must be A, B, C, or D`);
+                    skippedRows.push(`Row ${rowNumber}: Skipping due to invalid CorrectAnswer (${correctAnswer})`);
                     continue;
                 }
 
@@ -461,34 +462,57 @@ router.post('/:id/import-questions', upload.single('file'), async (req, res) => 
                     optionC: row.OptionC.toString().trim(),
                     optionD: row.OptionD.toString().trim(),
                     correctOption: correctAnswer,
-                    points: row.Points || 1,
+                    points: row.Points ? parseInt(row.Points) : 1,
                     explanation: row.Explanation || null
                 });
             } catch (error) {
-                errors.push(`Row ${rowNumber}: Invalid data format`);
+                errors.push(`Row ${rowNumber}: Invalid data format - ${error.message}`);
             }
         }
 
+        // Log skipped rows and errors for debugging
+        if (skippedRows.length > 0) {
+            console.log('Skipped rows during import:', skippedRows);
+        }
         if (errors.length > 0) {
+            console.log('Errors during import:', errors);
+        }
+
+        // If no questions were processed, return an error
+        if (questions.length === 0) {
             return res.status(400).json({
-                message: 'Import failed due to validation errors',
+                message: 'No valid questions found in the Excel file',
+                skippedRows,
                 errors
             });
         }
 
+
         // Save questions to database
-        await Question.bulkCreate(questions);
+        if (questions.length > 0) {
+            await Question.bulkCreate(questions);
 
-        // Update exam question count
-        await exam.update({ totalQuestions: exam.totalQuestions + questions.length });
+            // Update exam question count
+            await exam.update({ totalQuestions: exam.totalQuestions + questions.length });
 
-        // Clean up uploaded file
-        fs.unlinkSync(req.file.path);
+            // Clean up uploaded file
+            fs.unlinkSync(req.file.path);
 
-        res.json({
-            message: `Successfully imported ${questions.length} questions`,
-            importedCount: questions.length
-        });
+            res.json({
+                message: `Successfully imported ${questions.length} questions`,
+                importedCount: questions.length,
+                skippedRows: skippedRows.length > 0 ? skippedRows : undefined
+            });
+        } else {
+            // Clean up uploaded file
+            fs.unlinkSync(req.file.path);
+
+            res.status(400).json({
+                message: 'No valid questions found in the Excel file',
+                skippedRows,
+                errors
+            });
+        }
     } catch (error) {
         console.error('Import questions error:', error);
 
@@ -497,10 +521,12 @@ router.post('/:id/import-questions', upload.single('file'), async (req, res) => 
             fs.unlinkSync(req.file.path);
         }
 
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            message: 'Server error during import',
+            error: error.message
+        });
     }
 });
-
 // @route   GET /api/exams/:id/export-questions
 // @desc    Export exam questions to Excel
 // @access  Private (Admin)

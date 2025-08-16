@@ -14,8 +14,12 @@ const authenticateToken = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findByPk(decoded.userId);
 
-        if (!user || !user.isActive) {
-            return res.status(401).json({ message: 'Invalid or inactive user' });
+        if (!user) {
+            return res.status(401).json({ message: 'User account has been deleted. Please contact administrator.' });
+        }
+
+        if (!user.isActive) {
+            return res.status(401).json({ message: 'User account is inactive. Please contact administrator.' });
         }
 
         req.user = user;
@@ -59,6 +63,12 @@ const optionalAuth = async (req, res, next) => {
 
             if (user && user.isActive) {
                 req.user = user;
+            } else if (user && !user.isActive) {
+                // User exists but is inactive
+                return res.status(401).json({ message: 'User account is inactive. Please contact administrator.' });
+            } else if (!user) {
+                // User has been deleted
+                return res.status(401).json({ message: 'User account has been deleted. Please contact administrator.' });
             }
         }
         next();
