@@ -42,7 +42,7 @@ router.get('/my-exams', authenticateToken, requireStudent, async (req, res) => {
                         {
                             model: Exam,
                             as: 'exam',
-                            attributes: ['name', 'duration', 'passingScore']
+                            attributes: ['title', 'duration', 'passingScore']
                         }
                     ]
                 }
@@ -128,7 +128,7 @@ router.get('/exam/:examId/start', authenticateToken, requireStudent, async (req,
         res.json({
             exam: {
                 id: assignment.exam.id,
-                name: assignment.exam.name,
+                name: assignment.exam.title,
                 description: assignment.exam.description,
                 duration: assignment.exam.duration,
                 instructions: assignment.exam.instructions,
@@ -255,7 +255,7 @@ router.post('/exam/:examId/submit', [
             result: {
                 ...result.toJSON(),
                 exam: {
-                    name: assignment.exam.name,
+                    name: assignment.exam.title,
                     passingScore: assignment.exam.passingScore
                 }
             }
@@ -277,7 +277,7 @@ router.get('/my-results', authenticateToken, requireStudent, async (req, res) =>
                 {
                     model: Exam,
                     as: 'exam',
-                    attributes: ['name', 'duration', 'passingScore']
+                    attributes: ['title', 'duration', 'passingScore']
                 }
             ],
             order: [['submittedAt', 'DESC']]
@@ -304,7 +304,7 @@ router.get('/exam/:examId/result', authenticateToken, requireStudent, async (req
                 {
                     model: Exam,
                     as: 'exam',
-                    attributes: ['name', 'duration', 'passingScore']
+                    attributes: ['title', 'duration', 'passingScore']
                 }
             ]
         });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaChartBar, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaChartBar } from 'react-icons/fa';
 
 const StudentResults = () => {
     return (

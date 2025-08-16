@@ -74,7 +74,7 @@ router.get('/', [
         const whereClause = {};
         if (search) {
             whereClause[Op.or] = [
-                { name: { [Op.like]: `%${search}%` } },
+                { title: { [Op.like]: `%${search}%` } },
                 { description: { [Op.like]: `%${search}%` } }
             ];
         }
@@ -161,12 +161,13 @@ router.get('/:id', async (req, res) => {
 // @desc    Create new exam
 // @access  Private (Admin)
 router.post('/', [
-    body('name').trim().isLength({ min: 3, max: 200 }).withMessage('Name must be between 3 and 200 characters'),
+    body('title').trim().isLength({ min: 3, max: 200 }).withMessage('Title must be between 3 and 200 characters'),
     body('description').optional().trim(),
     body('duration').isInt({ min: 1, max: 480 }).withMessage('Duration must be between 1 and 480 minutes'),
+    body('totalQuestions').optional().isInt({ min: 0 }).withMessage('Total questions must be a non-negative integer'),
     body('passingScore').optional().isInt({ min: 0, max: 100 }).withMessage('Passing score must be between 0 and 100'),
-    body('startDate').optional().isISO8601().withMessage('Start date must be a valid date'),
-    body('endDate').optional().isISO8601().withMessage('End date must be a valid date'),
+    body('startDate').optional(),
+    body('endDate').optional(),
     body('instructions').optional().trim()
 ], async (req, res) => {
     try {
@@ -176,22 +177,42 @@ router.post('/', [
         }
 
         const {
-            name,
+            title,
             description,
             duration,
-            passingScore = 60,
+            totalQuestions = 0,
+            passingScore = 70,
             startDate,
             endDate,
             instructions
         } = req.body;
 
+        // Handle date conversion more gracefully
+        let startDateObj = null;
+        let endDateObj = null;
+
+        if (startDate) {
+            startDateObj = new Date(startDate);
+            if (isNaN(startDateObj.getTime())) {
+                return res.status(400).json({ message: 'Invalid start date format' });
+            }
+        }
+
+        if (endDate) {
+            endDateObj = new Date(endDate);
+            if (isNaN(endDateObj.getTime())) {
+                return res.status(400).json({ message: 'Invalid end date format' });
+            }
+        }
+
         const exam = await Exam.create({
-            name,
+            title,
             description,
             duration,
+            totalQuestions,
             passingScore,
-            startDate: startDate ? new Date(startDate) : null,
-            endDate: endDate ? new Date(endDate) : null,
+            startDate: startDateObj,
+            endDate: endDateObj,
             instructions
         });
 
@@ -209,12 +230,13 @@ router.post('/', [
 // @desc    Update exam
 // @access  Private (Admin)
 router.put('/:id', [
-    body('name').optional().trim().isLength({ min: 3, max: 200 }).withMessage('Name must be between 3 and 200 characters'),
+    body('title').optional().trim().isLength({ min: 3, max: 200 }).withMessage('Title must be between 3 and 200 characters'),
     body('description').optional().trim(),
     body('duration').optional().isInt({ min: 1, max: 480 }).withMessage('Duration must be between 1 and 480 minutes'),
+    body('totalQuestions').optional().isInt({ min: 0 }).withMessage('Total questions must be a non-negative integer'),
     body('passingScore').optional().isInt({ min: 0, max: 100 }).withMessage('Passing score must be between 0 and 100'),
-    body('startDate').optional().isISO8601().withMessage('Start date must be a valid date'),
-    body('endDate').optional().isISO8601().withMessage('End date must be a valid date'),
+    body('startDate').optional(),
+    body('endDate').optional(),
     body('instructions').optional().trim(),
     body('isActive').optional().isBoolean().withMessage('isActive must be a boolean')
 ], async (req, res) => {
@@ -230,8 +252,23 @@ router.put('/:id', [
         }
 
         const updateData = { ...req.body };
-        if (updateData.startDate) updateData.startDate = new Date(updateData.startDate);
-        if (updateData.endDate) updateData.endDate = new Date(updateData.endDate);
+
+        // Handle date conversion more gracefully
+        if (updateData.startDate) {
+            const startDateObj = new Date(updateData.startDate);
+            if (isNaN(startDateObj.getTime())) {
+                return res.status(400).json({ message: 'Invalid start date format' });
+            }
+            updateData.startDate = startDateObj;
+        }
+
+        if (updateData.endDate) {
+            const endDateObj = new Date(updateData.endDate);
+            if (isNaN(endDateObj.getTime())) {
+                return res.status(400).json({ message: 'Invalid end date format' });
+            }
+            updateData.endDate = endDateObj;
+        }
 
         await exam.update(updateData);
 

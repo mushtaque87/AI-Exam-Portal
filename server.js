@@ -80,7 +80,7 @@ app.use('*', (req, res) => {
 db.authenticate()
     .then(() => {
         console.log('Database connected successfully');
-        return db.sync({ alter: true });
+        return db.sync({ force: false });
     })
     .then(() => {
         return seedInitialData();
