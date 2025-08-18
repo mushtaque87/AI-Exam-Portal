@@ -10,7 +10,9 @@
     "build": "cd client && npm run build",
     "install-client": "cd client && npm install",
     "setup": "node setup.js",
-    "heroku-postbuild": "npm run install-client && npm run build"
+    "heroku-postbuild": "npm run install-client && npm run build",
+    "railway:build": "cd client && npm ci && npm run build",
+    "railway:start": "node server.js"
   },
   "keywords": ["exam", "portal", "mcq", "education"],
   "author": "Exam Portal Team",
@@ -32,4 +34,4 @@
   "devDependencies": {
     "nodemon": "^3.0.1"
   }
-} 
+}

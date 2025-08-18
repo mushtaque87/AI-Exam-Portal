@@ -6,14 +6,21 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const { login } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
 
-        await login(email, password);
-        setLoading(false);
+        try {
+            await login(email, password);
+        } catch (err) {
+            setError(err.message || 'Failed to login. Please check your credentials.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -22,7 +29,7 @@ const Login = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#0057a9'
+            backgroundColor: '#f8fafc'
         }}>
             <div className="card" style={{
                 maxWidth: '400px',
@@ -30,8 +37,18 @@ const Login = () => {
                 margin: '0',
                 padding: '2rem',
                 borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb'
             }}>
+                <style>
+                    {`
+                    ::placeholder { 
+                        color: #9ca3af !important;
+                        opacity: 1;
+                    }
+                    `}
+                </style>
                 <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                     <div style={{
                         display: 'flex',
@@ -50,13 +67,13 @@ const Login = () => {
                     <h1 style={{
                         fontSize: '1.75rem',
                         fontWeight: '600',
-                        color: '#003B71',
+                        color: '#1e293b',
                         marginBottom: '0.25rem'
                     }}>
                         PMI Exam Portal
                     </h1>
                     <p style={{
-                        color: '#4B5563',
+                        color: '#64748b',
                         marginTop: '0.25rem',
                         fontSize: '0.95rem'
                     }}>
@@ -65,6 +82,20 @@ const Login = () => {
                 </div>
 
                 <form onSubmit={handleSubmit}>
+                    {error && (
+                        <div style={{ 
+                            color: '#ef4444', 
+                            marginTop: '1rem', 
+                            fontSize: '0.9rem',
+                            backgroundColor: '#fee2e2',
+                            padding: '0.5rem',
+                            borderRadius: '4px',
+                            border: '1px solid #fecaca',
+                            marginBottom: '1rem'
+                        }}>
+                            {error}
+                        </div>
+                    )}
                     <div className="form-group" style={{ marginBottom: '1rem' }}>
                         <label className="form-label" style={{
                             display: 'flex',
@@ -74,7 +105,7 @@ const Login = () => {
                             marginBottom: '0.5rem',
                             fontSize: '0.95rem'
                         }}>
-                            <FaUser style={{ marginRight: '0.5rem', color: '#005EB8' }} />
+                            <FaUser style={{ marginRight: '0.5rem', color: '#3b82f6' }} />
                             Email Address
                         </label>
                         <input
@@ -88,13 +119,15 @@ const Login = () => {
                                 width: '100%',
                                 padding: '0.6rem 0.8rem',
                                 borderRadius: '6px',
-                                border: '1px solid #D1D5DB',
+                                border: '1px solid #d1d5db',
+                                backgroundColor: 'white',
+                                color: '#1e293b',
                                 fontSize: '0.95rem',
                                 transition: 'border-color 0.2s',
                                 outline: 'none'
                             }}
-                            onFocus={(e) => e.target.style.borderColor = '#005EB8'}
-                            onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
+                            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                         />
                     </div>
 
@@ -107,7 +140,7 @@ const Login = () => {
                             marginBottom: '0.5rem',
                             fontSize: '0.95rem'
                         }}>
-                            <FaLock style={{ marginRight: '0.5rem', color: '#005EB8' }} />
+                            <FaLock style={{ marginRight: '0.5rem', color: '#3b82f6' }} />
                             Password
                         </label>
                         <input
@@ -121,13 +154,15 @@ const Login = () => {
                                 width: '100%',
                                 padding: '0.6rem 0.8rem',
                                 borderRadius: '6px',
-                                border: '1px solid #D1D5DB',
+                                border: '1px solid #d1d5db',
+                                backgroundColor: 'white',
+                                color: '#1e293b',
                                 fontSize: '0.95rem',
                                 transition: 'border-color 0.2s',
                                 outline: 'none'
                             }}
-                            onFocus={(e) => e.target.style.borderColor = '#005EB8'}
-                            onBlur={(e) => e.target.style.borderColor = '#D1D5DB'}
+                            onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                            onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                         />
                     </div>
 
@@ -139,28 +174,30 @@ const Login = () => {
                             marginTop: '0.75rem',
                             padding: '0.7rem',
                             fontSize: '1rem',
-                            fontWeight: '500',
+                            fontWeight: '600',
                             borderRadius: '6px',
-                            background: 'linear-gradient(135deg, #005EB8 0%, #003B71 100%)',
+                            backgroundColor: '#4e17a6',
                             border: 'none',
                             color: 'white',
                             cursor: 'pointer',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                            boxShadow: '0 2px 8px rgba(0, 94, 184, 0.3)'
+                            transition: 'all 0.2s',
+                            boxShadow: '0 2px 8px rgba(78, 23, 166, 0.2)'
                         }}
                         disabled={loading}
                         onMouseOver={(e) => {
+                            e.target.style.backgroundColor = '#3b1080';
                             e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 12px rgba(0, 94, 184, 0.4)';
                         }}
                         onMouseOut={(e) => {
+                            e.target.style.backgroundColor = '#4e17a6';
                             e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 8px rgba(0, 94, 184, 0.3)';
                         }}
                     >
                         {loading ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <div className="spinner" style={{ width: '16px', height: '16px', marginRight: '0.5rem' }}></div>
+                                <div className="spinner" style={{ 
+                                    marginRight: '0.5rem'
+                                }}></div>
                                 Signing in...
                             </div>
                         ) : (

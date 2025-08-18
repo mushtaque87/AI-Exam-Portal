@@ -29,7 +29,7 @@ app.use(limiter);
 // CORS configuration
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
-        ? ['https://your-domain.com']
+        ? [process.env.FRONTEND_URL || 'https://*.railway.app']
         : ['http://localhost:3000'],
     credentials: true
 }));
@@ -94,4 +94,4 @@ db.authenticate()
     .catch(err => {
         console.error('Database connection failed:', err);
         process.exit(1);
-    }); 
+    });
