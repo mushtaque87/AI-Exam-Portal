@@ -51,7 +51,18 @@ const AdminDashboard = () => {
 
     return (
         <div>
-            <h1 style={{ marginBottom: '2rem', color: '#1e293b' }}>Admin Dashboard</h1>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
+                <img 
+                    src="/pmi-logo.png" 
+                    alt="PMI Logo" 
+                    style={{ 
+                        height: '40px',
+                        marginRight: '1rem',
+                        objectFit: 'contain'
+                    }} 
+                />
+                <h1 style={{ color: '#1e293b', margin: 0 }}>Admin Dashboard</h1>
+            </div>
 
             {/* Statistics Cards */}
             <div style={{
@@ -209,4 +220,4 @@ const AdminDashboard = () => {
     );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;

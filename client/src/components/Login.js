@@ -34,17 +34,18 @@ const Login = () => {
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                     <div style={{
-                        backgroundColor: '#005EB8',
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '50%',
                         display: 'flex',
-                        alignItems: 'center',
                         justifyContent: 'center',
-                        margin: '0 auto 1rem',
-                        boxShadow: '0 2px 8px rgba(0, 94, 184, 0.3)'
+                        margin: '0 auto 1rem'
                     }}>
-                        <FaBrain size={28} style={{ color: 'white' }} />
+                        <img 
+                            src="/pmi-logo.png" 
+                            alt="PMI Logo" 
+                            style={{ 
+                                height: '80px',
+                                objectFit: 'contain'
+                            }} 
+                        />
                     </div>
                     <h1 style={{
                         fontSize: '1.75rem',
@@ -172,4 +173,4 @@ const Login = () => {
     );
 };
 
-export default Login; 
+export default Login;

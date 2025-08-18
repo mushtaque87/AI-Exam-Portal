@@ -33,7 +33,15 @@ const Navbar = () => {
                     fontWeight: 'bold',
                     fontSize: '1.25rem'
                 }}>
-                    <FaBrain style={{ marginRight: '0.5rem', color: '#3b82f6' }} />
+                    <img 
+                        src="/pmi-logo.png" 
+                        alt="PMI Logo" 
+                        style={{ 
+                            height: '30px',
+                            marginRight: '0.5rem',
+                            objectFit: 'contain'
+                        }} 
+                    />
                     Exam Portal
                 </Link>
 
@@ -128,4 +136,4 @@ const Navbar = () => {
     );
 };
 
-export default Navbar; 
+export default Navbar;
