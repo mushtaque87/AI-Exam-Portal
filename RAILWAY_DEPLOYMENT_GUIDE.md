@@ -42,24 +42,55 @@
 
 ## Deployment Steps
 
-1. **Push Changes to GitHub**:
+### Option 1: Deploy Specific Branch (Recommended)
+
+1. **In Railway Dashboard**:
+
+   - Go to your project settings
+   - Navigate to "Source" or "GitHub" section
+   - Change the branch from `main` to `railway-deployment`
+   - Click "Save" or "Update"
+
+2. **Alternative: Using Railway CLI**:
 
    ```bash
-   git add .
-   git commit -m "Fix Railway deployment configuration"
-   git push origin main
+   # Install Railway CLI if not already installed
+   npm install -g @railway/cli
+
+   # Login to Railway
+   railway login
+
+   # Link to your project
+   railway link
+
+   # Deploy specific branch
+   railway up --branch railway-deployment
    ```
 
-2. **Railway Environment Variables**:
-   Set these in your Railway project dashboard:
+### Option 2: Merge to Main Branch
 
-   - `NODE_ENV=production`
-   - `DATABASE_URL` (your MySQL connection string)
-   - `JWT_SECRET` (your JWT secret key)
-   - `FRONTEND_URL` (optional, your Railway app URL)
+1. **Create Pull Request**:
 
-3. **Redeploy**:
-   Railway will automatically redeploy when you push to GitHub
+   - Go to your GitHub repository
+   - Create a pull request from `railway-deployment` to `main`
+   - Review and merge the changes
+
+2. **Railway Auto-Deploy**:
+   - Railway will automatically deploy the main branch after merge
+
+### Environment Variables Setup
+
+Set these in your Railway project dashboard:
+
+- `NODE_ENV=production`
+- `DATABASE_URL` (your MySQL connection string)
+- `JWT_SECRET` (your JWT secret key)
+- `FRONTEND_URL` (optional, your Railway app URL)
+
+### Manual Redeploy (if needed)
+
+- Go to Railway dashboard → Deployments → Click "Deploy"
+- Or use CLI: `railway up --branch railway-deployment`
 
 ## Build Process Flow
 

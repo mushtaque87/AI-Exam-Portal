@@ -14,3 +14,7 @@ cmds = [
 
 [start]
 cmd = "npm run railway:start"
+
+[variables]
+NODE_ENV = "production"
+NPM_CONFIG_PRODUCTION = "false"
