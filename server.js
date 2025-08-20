@@ -47,7 +47,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/results', resultRoutes);
-
+app.set('trust proxy', 1); // or true for all proxies
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Exam Portal API is running' });
