@@ -15,7 +15,8 @@ router.get('/exam/:examId', async (req, res) => {
     try {
         const exam = await Exam.findByPk(req.params.examId);
         if (!exam) {
-            return res.status(404).json({ message: 'Exam not found' });
+            // Be tolerant and return empty list so UI can still render
+            return res.json({ questions: [] });
         }
 
         const questions = await Question.findAll({
@@ -40,7 +41,7 @@ router.get('/:id', async (req, res) => {
                 {
                     model: Exam,
                     as: 'exam',
-                    attributes: ['id', 'name']
+                    attributes: ['id', 'title']
                 }
             ]
         });

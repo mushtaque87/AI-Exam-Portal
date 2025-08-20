@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FaPlus, FaEdit, FaTrash, FaQuestionCircle, FaUsers, FaChartBar, FaCalendarAlt, FaUserCheck, FaSearch, FaFilter, FaFileExport, FaCheckCircle, FaClock, FaUserPlus } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaQuestionCircle, FaUserPlus } from 'react-icons/fa';
 import QuestionList from './QuestionList';
 
 const ExamList = () => {
@@ -14,16 +14,13 @@ const ExamList = () => {
     const [selectedExam, setSelectedExam] = useState(null);
     const [users, setUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [stats, setStats] = useState({
-        totalExams: 0,
-        activeExams: 0,
-        totalAssignments: 0,
-        completedExams: 0
-    });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalExams, setTotalExams] = useState(0);
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(totalExams / itemsPerPage);
     const [formData, setFormData] = useState({
         title: '',
+        description: '',
         duration: 60,
         totalQuestions: 10,
         passingScore: 70,
@@ -35,62 +32,20 @@ const ExamList = () => {
 
     useEffect(() => {
         fetchExams();
-        fetchStats();
     }, []);
 
-    const fetchExams = async () => {
+    const fetchExams = async (page = currentPage) => {
         try {
-            // Fetch all exams without pagination limits
-            const response = await axios.get('/api/exams?limit=100');
-            if (!response.data || !Array.isArray(response.data.exams)) {
-                throw new Error('Invalid exam data received');
-            }
+            setLoading(true);
+            const offset = (page - 1) * itemsPerPage;
+            const response = await axios.get(`/api/exams?limit=${itemsPerPage}&offset=${offset}`);
             setExams(response.data.exams);
+            setTotalExams(response.data.total || response.data.exams.length);
         } catch (error) {
-            toast.error('Failed to fetch exams: ' + (error.response?.data?.message || error.message));
+            toast.error('Failed to fetch exams');
             console.error('Error fetching exams:', error);
-            // Don't log out user on error, just show empty state
-            setExams([]);
         } finally {
             setLoading(false);
-        }
-    };
-    
-    const fetchStats = async () => {
-        try {
-            // In a real application, you would fetch these stats from the backend
-            // For now, we'll calculate them from the exams data
-            const response = await axios.get('/api/exams?limit=100');
-            if (!response.data || !Array.isArray(response.data.exams)) {
-                throw new Error('Invalid exam data received');
-            }
-            const allExams = response.data.exams;
-            
-            const activeExams = allExams.filter(exam => exam.isActive).length;
-            const totalAssignments = allExams.reduce((sum, exam) => sum + (exam.assignedUsers?.length || 0), 0);
-            
-            // For completed exams, in a real app you would get this from the backend
-            // Here we're just estimating based on dates
-            const now = new Date();
-            const completedExams = allExams.filter(exam => {
-                return exam.endDate && new Date(exam.endDate) < now;
-            }).length;
-            
-            setStats({
-                totalExams: allExams.length,
-                activeExams,
-                totalAssignments,
-                completedExams
-            });
-        } catch (error) {
-            console.error('Error fetching stats:', error);
-            // Set default stats on error
-            setStats({
-                totalExams: 0,
-                activeExams: 0,
-                totalAssignments: 0,
-                completedExams: 0
-            });
         }
     };
 
@@ -132,6 +87,7 @@ const ExamList = () => {
         setEditingExam(exam);
         setFormData({
             title: exam.title,
+            description: exam.description,
             duration: exam.duration,
             totalQuestions: exam.totalQuestions,
             passingScore: exam.passingScore,
@@ -181,34 +137,49 @@ const ExamList = () => {
     const handleAssignUsers = async (exam) => {
         setSelectedExam(exam);
         try {
+            // Check authentication first
+            const token = localStorage.getItem('token');
+            if (!token) {
+                toast.error('Please log in to continue');
+                return;
+            }
+            
             // Fetch all users
             const usersResponse = await axios.get('/api/users');
-            if (!usersResponse.data || !Array.isArray(usersResponse.data.users)) {
-                throw new Error('Invalid user data received');
+            if (!usersResponse.data || !usersResponse.data.users) {
+                throw new Error('Invalid users response format');
             }
             setUsers(usersResponse.data.users);
 
             // Fetch currently assigned users for this exam
             const examResponse = await axios.get(`/api/exams/${exam.id}`);
             if (!examResponse.data || !examResponse.data.exam) {
-                throw new Error('Invalid exam data received');
+                throw new Error('Invalid exam response format');
             }
+            
             const assigned = examResponse.data.exam.assignedUsers || [];
             setSelectedUsers(assigned.map(user => user.id));
 
             setShowAssignModal(true);
         } catch (error) {
-            toast.error('Failed to load assignment data: ' + (error.response?.data?.message || error.message));
-            console.error('Error loading assignment data:', error);
+            console.error('Assignment data loading error:', error);
+            
+            // Handle specific error cases
+            if (error.response?.status === 401) {
+                toast.error('Session expired. Please log in again.');
+                // Optionally redirect to login
+            } else if (error.response?.status === 404) {
+                toast.error('Exam not found or has been deleted.');
+            } else if (error.response?.status === 500) {
+                toast.error('Server error. Please try again later.');
+            } else {
+                const errorMessage = error.response?.data?.message || error.message || 'Failed to load assignment data';
+                toast.error(errorMessage);
+            }
         }
     };
 
     const handleUserSelection = (userId) => {
-        if (!userId) {
-            console.error('Invalid user ID in selection');
-            return;
-        }
-        
         setSelectedUsers(prev => {
             if (prev.includes(userId)) {
                 return prev.filter(id => id !== userId);
@@ -220,10 +191,6 @@ const ExamList = () => {
 
     const handleAssignSubmit = async () => {
         try {
-            if (!selectedExam || !selectedExam.id) {
-                throw new Error('No exam selected');
-            }
-            
             await axios.post(`/api/exams/${selectedExam.id}/assign-users`, {
                 userIds: selectedUsers
             });
@@ -231,26 +198,22 @@ const ExamList = () => {
             setShowAssignModal(false);
             fetchExams(); // Refresh exam list to show updated assignment count
         } catch (error) {
-            const message = error.response?.data?.message || error.message || 'Failed to assign users';
+            const message = error.response?.data?.message || 'Failed to assign users';
             toast.error(message);
-            console.error('Error assigning users:', error);
-            // Don't close the modal on error so user can try again
         }
     };
 
     const closeAssignModal = () => {
         setShowAssignModal(false);
-        // Use setTimeout to ensure state is cleaned up after modal animation completes
-        setTimeout(() => {
-            setSelectedExam(null);
-            setUsers([]);
-            setSelectedUsers([]);
-        }, 300);
+        setSelectedExam(null);
+        setUsers([]);
+        setSelectedUsers([]);
     };
 
     const resetForm = () => {
         setFormData({
             title: '',
+            description: '',
             duration: 60,
             totalQuestions: 10,
             passingScore: 70,
@@ -271,6 +234,23 @@ const ExamList = () => {
         setShowModal(false);
         setEditingExam(null);
         resetForm();
+    };
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+        fetchExams(page);
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 1) {
+            handlePageChange(currentPage - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            handlePageChange(currentPage + 1);
+        }
     };
 
     if (loading) {
@@ -296,290 +276,207 @@ const ExamList = () => {
         );
     }
 
-    // Filter exams based on search term and status filter
-    const filteredExams = exams.filter(exam => {
-        const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            exam.description.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        if (filterStatus === 'all') return matchesSearch;
-        if (filterStatus === 'active') return matchesSearch && exam.isActive;
-        if (filterStatus === 'inactive') return matchesSearch && !exam.isActive;
-        
-        return matchesSearch;
-    });
-
     return (
         <div className="exam-list">
-            <div className="dashboard-header">
-                <h1>Exam Management</h1>
-                <div className="dashboard-actions">
-                    <button className="btn btn-outline" onClick={() => {/* Export functionality */}}>
-                        <FaFileExport /> Export
-                    </button>
-                    <button className="btn btn-primary" onClick={openModal}>
-                        <FaPlus /> Create New Exam
-                    </button>
-                </div>
-            </div>
-            
-            {/* Stats Dashboard */}
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-icon">
-                        <FaChartBar />
-                    </div>
-                    <h3>{stats.totalExams}</h3>
-                    <p>Total Exams</p>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon active">
-                        <FaCalendarAlt />
-                    </div>
-                    <h3>{stats.activeExams}</h3>
-                    <p>Active Exams</p>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon">
-                        <FaUsers />
-                    </div>
-                    <h3>{stats.totalAssignments}</h3>
-                    <p>Total Assignments</p>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon completed">
-                        <FaCheckCircle />
-                    </div>
-                    <h3>{stats.completedExams}</h3>
-                    <p>Completed Exams</p>
-                </div>
-            </div>
-            
-            {/* Search and Filters */}
-            <div className="filters-section">
-                <div className="search-form">
-                    <div className="search-input-group">
-                        <FaSearch className="search-icon" />
-                        <input 
-                            type="text" 
-                            className="search-input" 
-                            placeholder="Search exams..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="filters">
-                        <div className="filter-group">
-                            <FaFilter className="filter-icon" />
-                            <select 
-                                className="filter-select"
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                            >
-                                <option value="all">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div className="results-info">
-                Showing {filteredExams.length} of {exams.length} exams
+            <div className="header">
+                <h2>Exam Management</h2>
+                <button className="btn btn-primary" onClick={openModal}>
+                    <FaPlus /> Create New Exam
+                </button>
             </div>
 
-            <div className="exam-grid responsive-grid">
-                {filteredExams.map((exam) => (
-                    <div key={exam.id} className="exam-card">
-                        <div className="exam-header">
-                            <h3>{exam.title}</h3>
-                            <span className={`status ${exam.isActive ? 'active' : 'inactive'}`}>
-                                {exam.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                        </div>
-                        <div className="exam-details">
-                            <div className="detail">
-                                <strong>Duration:</strong> {exam.duration} minutes
-                            </div>
-                            <div className="detail">
-                                <strong>Questions:</strong> {exam.totalQuestions}
-                            </div>
-                            <div className="detail">
-                                <strong>Passing Score:</strong> {exam.passingScore}%
-                            </div>
-                        </div>
-                        <div className="exam-actions">
-                            <button
-                                className="btn btn-sm btn-outline"
-                                onClick={() => handleEdit(exam)}
-                            >
-                                <FaEdit /> Edit
-                            </button>
-                            <button
-                                className="btn btn-sm btn-danger"
-                                onClick={() => handleDelete(exam.id)}
-                            >
-                                <FaTrash /> Delete
-                            </button>
-                            <button
-                                className="btn btn-sm btn-info"
-                                onClick={() => handleManageQuestions(exam)}
-                                title="Manage Questions"
-                            >
-                                <FaQuestionCircle /> Questions
-                            </button>
-                            <button
-                                className="btn btn-sm btn-success"
-                                onClick={() => handleAssignUsers(exam)}
-                                title="Assign Users"
-                            >
-                                <FaUserPlus /> Assign
-                            </button>
-                        </div>
-                    </div>
-                ))}
+            <div className="table-container">
+                <table className="exam-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Duration</th>
+                            <th>Questions</th>
+                            <th>Passing Score</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {exams.map((exam) => (
+                            <tr key={exam.id}>
+                                <td className="exam-title">{exam.title}</td>
+                                <td className="exam-description">{exam.description}</td>
+                                <td>{exam.duration} min</td>
+                                <td>{exam.totalQuestions}</td>
+                                <td>{exam.passingScore}%</td>
+                                <td>
+                                    <span className={`status ${exam.isActive ? 'active' : 'inactive'}`}>
+                                        {exam.isActive ? 'Active' : 'Inactive'}
+                                    </span>
+                                </td>
+                                <td className="exam-actions">
+                                    <button
+                                        className="btn btn-sm btn-outline"
+                                        onClick={() => handleEdit(exam)}
+                                        title="Edit Exam"
+                                    >
+                                        <FaEdit />
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-danger"
+                                        onClick={() => handleDelete(exam.id)}
+                                        title="Delete Exam"
+                                    >
+                                        <FaTrash />
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-info"
+                                        onClick={() => handleManageQuestions(exam)}
+                                        title="Manage Questions"
+                                    >
+                                        <FaQuestionCircle />
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-success"
+                                        onClick={() => handleAssignUsers(exam)}
+                                        title="Assign Users"
+                                    >
+                                        <FaUserPlus />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="pagination-container">
+                    <div className="pagination-info">
+                        Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalExams)} of {totalExams} exams
+                    </div>
+                    <div className="pagination-controls">
+                        <button 
+                            className="btn btn-sm btn-outline" 
+                            onClick={handlePrevPage}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </button>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                                key={page}
+                                className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-outline'}`}
+                                onClick={() => handlePageChange(page)}
+                            >
+                                {page}
+                            </button>
+                        ))}
+                        
+                        <button 
+                            className="btn btn-sm btn-outline" 
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Modal */}
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal modal-large">
+                    <div className="modal">
                         <div className="modal-header">
                             <h3>{editingExam ? 'Edit Exam' : 'Create New Exam'}</h3>
                             <button className="close-btn" onClick={closeModal}>&times;</button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="form-tabs">
-                                <div className="form-sections">
-                                    <div className="form-section">
-                                        <h4 className="section-title">Basic Information</h4>
-                                        <div className="form-group">
-                                            <label htmlFor="title">Title</label>
-                                            <input
-                                                id="title"
-                                                type="text"
-                                                className="form-input"
-                                                value={formData.title}
-                                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                                placeholder="Enter exam title"
-                                                required
-                                            />
-                                        </div>
-
-                                    </div>
-                                    
-                                    <div className="form-section">
-                                        <h4 className="section-title">Exam Settings</h4>
-                                        <div className="form-row">
-                                            <div className="form-group">
-                                                <label htmlFor="duration">
-                                                    <span className="label-icon"><FaClock /></span>
-                                                    Duration (minutes)
-                                                </label>
-                                                <input
-                                                    id="duration"
-                                                    type="number"
-                                                    className="form-input"
-                                                    value={formData.duration}
-                                                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                                                    min="1"
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label htmlFor="totalQuestions">
-                                                    <span className="label-icon"><FaQuestionCircle /></span>
-                                                    Total Questions
-                                                </label>
-                                                <input
-                                                    id="totalQuestions"
-                                                    type="number"
-                                                    className="form-input"
-                                                    value={formData.totalQuestions}
-                                                    onChange={(e) => setFormData({ ...formData, totalQuestions: parseInt(e.target.value) })}
-                                                    min="1"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="form-group">
-                                            <label htmlFor="passingScore">
-                                                <span className="label-icon"><FaCheckCircle /></span>
-                                                Passing Score (%)
-                                            </label>
-                                            <input
-                                                id="passingScore"
-                                                type="number"
-                                                className="form-input"
-                                                value={formData.passingScore}
-                                                onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) })}
-                                                min="0"
-                                                max="100"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="form-section">
-                                        <h4 className="section-title">Schedule</h4>
-                                        <div className="form-row">
-                                            <div className="form-group">
-                                                <label htmlFor="startDate">
-                                                    <span className="label-icon"><FaCalendarAlt /></span>
-                                                    Start Date
-                                                </label>
-                                                <input
-                                                    id="startDate"
-                                                    type="date"
-                                                    className="form-input"
-                                                    value={formData.startDate}
-                                                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label htmlFor="endDate">
-                                                    <span className="label-icon"><FaCalendarAlt /></span>
-                                                    End Date
-                                                </label>
-                                                <input
-                                                    id="endDate"
-                                                    type="date"
-                                                    className="form-input"
-                                                    value={formData.endDate}
-                                                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="form-group">
-                                            <label htmlFor="examDate">
-                                                <span className="label-icon"><FaCalendarAlt /></span>
-                                                Exam Date
-                                            </label>
-                                            <input
-                                                id="examDate"
-                                                type="date"
-                                                className="form-input"
-                                                value={formData.date}
-                                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="form-section">
-                                        <h4 className="section-title">Additional Information</h4>
-                                        <div className="form-group">
-                                            <label htmlFor="instructions">Instructions</label>
-                                            <textarea
-                                                id="instructions"
-                                                className="form-textarea"
-                                                value={formData.instructions}
-                                                onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
-                                                rows="3"
-                                                placeholder="Enter instructions for students taking this exam"
-                                            />
-                                        </div>
-                                    </div>
+                            <div className="form-group">
+                                <label>Title</label>
+                                <input
+                                    type="text"
+                                    value={formData.title}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Description</label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Duration (minutes)</label>
+                                    <input
+                                        type="number"
+                                        value={formData.duration}
+                                        onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                                        min="1"
+                                        required
+                                    />
                                 </div>
+                                <div className="form-group">
+                                    <label>Total Questions</label>
+                                    <input
+                                        type="number"
+                                        value={formData.totalQuestions}
+                                        onChange={(e) => setFormData({ ...formData, totalQuestions: parseInt(e.target.value) })}
+                                        min="1"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Passing Score (%)</label>
+                                    <input
+                                        type="number"
+                                        value={formData.passingScore}
+                                        onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) })}
+                                        min="0"
+                                        max="100"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Start Date</label>
+                                    <input
+                                        type="date"
+                                        value={formData.startDate}
+                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>End Date</label>
+                                    <input
+                                        type="date"
+                                        value={formData.endDate}
+                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Exam Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Instructions</label>
+                                <textarea
+                                    value={formData.instructions}
+                                    onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+                                    rows="3"
+                                />
                             </div>
                             <div className="modal-actions">
                                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
@@ -605,26 +502,21 @@ const ExamList = () => {
                         <div className="form-group">
                             <label>Select Users to Assign:</label>
                             <div className="user-list">
-                                {users && users.length > 0 ? (
-                                    users.map(user => (
-                                        <div key={user.id || 'unknown'} className="user-checkbox">
-                                            <label>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={user.id && selectedUsers.includes(user.id)}
-                                                    onChange={() => handleUserSelection(user.id)}
-                                                    disabled={!user.id}
-                                                />
-                                                <span className="user-info">
-                                                    {user.name || 'Unknown'} ({user.email || 'No email'})
-                                                    <span className={`role-badge ${user.role || 'unknown'}`}>{user.role || 'unknown'}</span>
-                                                </span>
-                                            </label>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div>No users available to assign</div>
-                                )}
+                                {users.map(user => (
+                                    <div key={user.id} className="user-checkbox">
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedUsers.includes(user.id)}
+                                                onChange={() => handleUserSelection(user.id)}
+                                            />
+                                            <span className="user-info">
+                                                {user.name} ({user.email})
+                                                <span className={`role-badge ${user.role}`}>{user.role}</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                         <div className="modal-actions">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FaPlus, FaEdit, FaTrash, FaUserGraduate, FaUserShield, FaSearch, FaFilter, FaSync, FaCheckSquare, FaSquare } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaUserGraduate, FaUserShield, FaSearch, FaFilter, FaSync, FaCheckSquare, FaSquare, FaTasks, FaEye, FaEyeSlash } from 'react-icons/fa';
+import UserPipelineEditor from './UserPipelineEditor';
 
 const UserList = () => {
     const [users, setUsers] = useState([]);
@@ -15,6 +16,8 @@ const UserList = () => {
         role: 'student',
         isActive: true
     });
+    const [showPipelineModal, setShowPipelineModal] = useState(false);
+    const [pipelineUser, setPipelineUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -227,11 +230,7 @@ const UserList = () => {
         setCurrentPage(1);
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'Never';
-        const date = new Date(dateString);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
+
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
@@ -255,6 +254,17 @@ const UserList = () => {
             setSelectedUsers(allUserIds);
         }
         setSelectAll(!selectAll);
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'Never';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     if (loading) {
@@ -367,76 +377,88 @@ const UserList = () => {
                 <p>Showing {users.length} of {totalItems} users</p>
             </div>
 
-            {/* User Grid */}
-            <div className="user-grid">
-                {users.map((user) => (
-                    <div key={user.id} className="user-card">
-                        <div className="user-select">
-                            <button
-                                className="select-button"
-                                onClick={() => handleSelectUser(user.id)}
-                            >
-                                {selectedUsers.includes(user.id) ? <FaCheckSquare /> : <FaSquare />}
-                            </button>
-                        </div>
-                        <div className="user-header">
-                            <div className="user-icon">
-                                {user.role === 'admin' ? <FaUserShield /> : <FaUserGraduate />}
-                            </div>
-                            <div className="user-info">
-                                <h3>{user.name}</h3>
-                                <p className="user-email">{user.email}</p>
-                                <div className="user-meta">
-                                    <span className={`role-badge ${user.role}`}>{user.role}</span>
-                                    <span className={`status ${user.isActive ? 'active' : 'inactive'}`}>
-                                        {user.isActive ? 'Active' : 'Inactive'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="user-details">
-                            <div className="detail-item">
-                                <span className="detail-label">Last Login:</span>
-                                <span className="detail-value">{formatDate(user.lastLogin)}</span>
-                            </div>
-                            <div className="detail-item">
-                                <span className="detail-label">Created:</span>
-                                <span className="detail-value">{formatDate(user.createdAt)}</span>
-                            </div>
-                        </div>
-
-                        <div className="user-actions">
-                            <button
-                                className="btn btn-sm btn-outline"
-                                onClick={() => handleEdit(user)}
-                            >
-                                <FaEdit /> Edit
-                            </button>
-                            {user.isActive && (
+            {/* User Table */}
+            <div className="table-container">
+                <table className="user-table">
+                    <thead>
+                        <tr>
+                            <th className="select-column">
                                 <button
-                                    className="btn btn-sm btn-danger"
-                                    onClick={() => handleDelete(user.id)}
+                                    className="select-button"
+                                    onClick={handleSelectAll}
                                 >
-                                    <FaTrash /> Delete
+                                    {selectAll ? <FaCheckSquare /> : <FaSquare />}
                                 </button>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                            </th>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Email</th>
+                            <th>Last Login</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map((user) => (
+                            <tr key={user.id} className={selectedUsers.includes(user.id) ? 'selected' : ''}>
+                                <td className="select-column">
+                                    <button
+                                        className="select-button"
+                                        onClick={() => handleSelectUser(user.id)}
+                                    >
+                                        {selectedUsers.includes(user.id) ? <FaCheckSquare /> : <FaSquare />}
+                                    </button>
+                                </td>
+                                <td className="user-info-cell">
+                                    <div className="user-info-wrapper">
+                                        <div className="user-icon">
+                                            {user.role === 'admin' ? <FaUserShield /> : <FaUserGraduate />}
+                                        </div>
+                                        <div className="user-details">
+                                            <div className="user-name">{user.name}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span className={`role-badge ${user.role}`}>{user.role}</span>
+                                </td>
+                                <td className="email-cell">{user.email}</td>
+                                <td className="date-cell">{formatDate(user.lastLogin)}</td>
+                                <td className="date-cell">{formatDate(user.createdAt)}</td>
+                                <td className="actions-cell">
+                                    <div className="action-buttons">
+                                        <button
+                                            className="btn btn-sm btn-outline"
+                                            onClick={() => handleEdit(user)}
+                                            title="Edit User"
+                                        >
+                                            <FaEdit />
+                                        </button>
+                                        <button
+                                            className="btn btn-sm btn-outline"
+                                            onClick={() => { setPipelineUser(user); setShowPipelineModal(true); }}
+                                            title="Manage Pipeline"
+                                        >
+                                            <FaTasks />
+                                        </button>
+                                        {user.isActive && (
+                                            <button
+                                                className="btn btn-sm btn-danger"
+                                                onClick={() => handleDelete(user.id)}
+                                                title="Delete User"
+                                            >
+                                                <FaTrash />
+                                            </button>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Select All */}
-            {users.length > 0 && (
-                <div className="select-all">
-                    <button
-                        className="select-all-button"
-                        onClick={handleSelectAll}
-                    >
-                        {selectAll ? <FaCheckSquare /> : <FaSquare />} Select All
-                    </button>
-                </div>
-            )}
+
 
             {/* Pagination */}
             {totalPages > 1 && (
@@ -539,6 +561,21 @@ const UserList = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Pipeline Modal */}
+            {showPipelineModal && (
+                <div className="modal-overlay">
+                    <div className="modal modal-large">
+                        <div className="modal-header">
+                            <h3>Update Pipeline: {pipelineUser?.name}</h3>
+                            <button className="close-btn" onClick={() => setShowPipelineModal(false)}>&times;</button>
+                        </div>
+                        <div style={{ padding: '0 1.5rem 1.5rem' }}>
+                            <UserPipelineEditor userId={pipelineUser?.id} />
+                        </div>
                     </div>
                 </div>
             )}

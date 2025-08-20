@@ -1,4 +1,4 @@
-const { User, Exam, Question } = require('../models');
+const { User, Exam, Question, Pipeline } = require('../models');
 const bcrypt = require('bcryptjs');
 
 const seedInitialData = async () => {
@@ -106,6 +106,34 @@ const seedInitialData = async () => {
             await sampleExam.update({ totalQuestions: sampleQuestions.length });
         } else {
             console.log('ℹ️ Sample exam already exists');
+        }
+
+        // Seed or normalize default pipeline
+        const desiredStages = [
+            'Payment Received',
+            'GST and Study Materials Shared',
+            'Pre Board Exam Scheduled',
+            'Pre Board Exam Completed',
+            'Soft Copies Released'
+        ];
+
+        const pipelineCount = await Pipeline.count();
+        if (pipelineCount === 0) {
+            await Pipeline.create({
+                name: 'My Order',
+                stages: desiredStages,
+                isActive: true
+            });
+            console.log('✅ Default pipeline created with My Order stages');
+        } else {
+            // If a default-named pipeline exists, normalize its name and stages
+            const defaultPipe = await Pipeline.findOne({
+                where: { name: ['Default Order Pipeline', 'My Order'] }
+            });
+            if (defaultPipe) {
+                await defaultPipe.update({ name: 'My Order', stages: desiredStages, isActive: true });
+                console.log('✅ Default pipeline normalized to My Order with desired stages');
+            }
         }
 
         console.log('🎉 Initial data seeding completed!');

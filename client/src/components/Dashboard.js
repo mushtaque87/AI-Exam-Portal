@@ -24,19 +24,11 @@ const Dashboard = () => {
             minHeight: '50vh',
             flexDirection: 'column'
         }}>
-            <img 
-                src="/pmi-logo.png" 
-                alt="PMI Logo" 
-                style={{ 
-                    height: '80px',
-                    marginBottom: '1rem',
-                    objectFit: 'contain'
-                }} 
-            />
+            <FaBrain size={64} style={{ color: '#3b82f6', marginBottom: '1rem' }} />
             <div className="spinner"></div>
             <p style={{ marginTop: '1rem', color: '#64748b' }}>Redirecting...</p>
         </div>
     );
 };
 
-export default Dashboard;
+export default Dashboard; 

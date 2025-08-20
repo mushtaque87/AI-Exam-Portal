@@ -6,7 +6,10 @@ const {
     Exam,
     UserExamAssignment,
     ExamResult,
-    Question
+    ExamResponse,
+    Question,
+    Pipeline,
+    UserPipelineProgress
 } = require('../models');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
@@ -51,12 +54,19 @@ router.get('/', [
             where: whereClause,
             limit,
             offset,
-            order: [['createdAt', 'DESC']],
-            attributes: { exclude: ['password'] }
+            order: [['createdAt', 'DESC']]
+            // Include password for admin users to display in UI
+        });
+
+        // Include password field for admin UI display
+        const usersWithPassword = users.map(user => {
+            const userData = user.toJSON();
+            userData.password = user.password; // Add password back to response
+            return userData;
         });
 
         res.json({
-            users,
+            users: usersWithPassword,
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(count / limit),
@@ -82,22 +92,26 @@ router.get('/:id', async (req, res) => {
                     model: Exam,
                     as: 'assignedExams',
                     through: { attributes: ['assignedAt', 'assignedBy'] },
+                    required: false,
                     include: [
                         {
                             model: Question,
                             as: 'questions',
-                            attributes: ['id']
+                            attributes: ['id'],
+                            required: false
                         }
                     ]
                 },
                 {
                     model: ExamResult,
                     as: 'examResults',
+                    required: false,
                     include: [
                         {
                             model: Exam,
                             as: 'exam',
-                            attributes: ['name', 'duration']
+                            attributes: ['id', 'title', 'duration'],
+                            required: false
                         }
                     ]
                 }
@@ -185,9 +199,17 @@ router.delete('/:id', async (req, res) => {
 
         // Perform hard delete - delete all related records first
         // Order matters due to foreign key constraints
+        console.log(`Deleting user ${user.id} and related records...`);
+        await ExamResponse.destroy({ where: { userId: user.id } });
+        console.log('ExamResponse records deleted');
         await ExamResult.destroy({ where: { userId: user.id } });
+        console.log('ExamResult records deleted');
         await UserExamAssignment.destroy({ where: { userId: user.id } });
+        console.log('UserExamAssignment records deleted');
+        await UserPipelineProgress.destroy({ where: { userId: user.id } });
+        console.log('UserPipelineProgress records deleted');
         await user.destroy();
+        console.log('User deleted successfully');
 
         res.json({ message: 'User deleted successfully' });
     } catch (error) {
@@ -345,4 +367,4 @@ router.get('/stats/overview', async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

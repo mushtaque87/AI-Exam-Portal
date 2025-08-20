@@ -21,20 +21,33 @@ const AdminDashboard = () => {
 
     const fetchStats = async () => {
         try {
+            console.log('Fetching dashboard statistics...');
             const [userStats, examStats, resultStats] = await Promise.all([
                 axios.get('/api/users/stats/overview'),
                 axios.get('/api/exams/stats/overview'),
                 axios.get('/api/results/stats/overview')
             ]);
 
+            console.log('Stats fetched successfully:', {
+                users: userStats.data,
+                exams: examStats.data,
+                results: resultStats.data
+            });
+
             setStats({
                 users: userStats.data,
                 exams: examStats.data,
                 results: resultStats.data
             });
+            toast.success('Dashboard statistics loaded successfully');
         } catch (error) {
             console.error('Error fetching stats:', error);
-            toast.error('Failed to load dashboard statistics');
+            console.error('Error details:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data
+            });
+            toast.error(`Failed to load dashboard statistics: ${error.response?.data?.message || error.message}`);
         } finally {
             setLoading(false);
         }
@@ -51,18 +64,7 @@ const AdminDashboard = () => {
 
     return (
         <div>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
-                <img 
-                    src="/pmi-logo.png" 
-                    alt="PMI Logo" 
-                    style={{ 
-                        height: '40px',
-                        marginRight: '1rem',
-                        objectFit: 'contain'
-                    }} 
-                />
-                <h1 style={{ color: '#1e293b', margin: 0 }}>Admin Dashboard</h1>
-            </div>
+            <h1 style={{ marginBottom: '2rem', color: '#1e293b' }}>Admin Dashboard</h1>
 
             {/* Statistics Cards */}
             <div style={{
@@ -129,7 +131,7 @@ const AdminDashboard = () => {
                                 Average Score
                             </h3>
                             <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1e293b' }}>
-                                {stats?.results?.averageScore || 0}%
+                                {isNaN(stats?.results?.averageScore) ? 0 : (stats?.results?.averageScore || 0)}%
                             </p>
                             <p style={{ fontSize: '0.875rem', color: '#64748b' }}>
                                 Recent: {stats?.results?.recentResults || 0}
@@ -210,7 +212,7 @@ const AdminDashboard = () => {
                             </li>
                             <li style={{ padding: '0.5rem 0' }}>
                                 <span style={{ color: '#64748b' }}>Average Score:</span>
-                                <span style={{ float: 'right', fontWeight: 'bold' }}>{stats?.exams?.averageScore || 0}%</span>
+                                <span style={{ float: 'right', fontWeight: 'bold' }}>{isNaN(stats?.exams?.averageScore) ? 0 : (stats?.exams?.averageScore || 0)}%</span>
                             </li>
                         </ul>
                     </div>

@@ -176,20 +176,20 @@ const Login = () => {
                             fontSize: '1rem',
                             fontWeight: '600',
                             borderRadius: '6px',
-                            backgroundColor: '#4e17a6',
+                            backgroundColor: '#3b82f6',
                             border: 'none',
                             color: 'white',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
-                            boxShadow: '0 2px 8px rgba(78, 23, 166, 0.2)'
+                            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.2)'
                         }}
                         disabled={loading}
                         onMouseOver={(e) => {
-                            e.target.style.backgroundColor = '#3b1080';
+                            e.target.style.backgroundColor = '#2563eb';
                             e.target.style.transform = 'translateY(-1px)';
                         }}
                         onMouseOut={(e) => {
-                            e.target.style.backgroundColor = '#4e17a6';
+                            e.target.style.backgroundColor = '#3b82f6';
                             e.target.style.transform = 'translateY(0)';
                         }}
                     >

@@ -4,6 +4,8 @@ const Question = require('./Question');
 const UserExamAssignment = require('./UserExamAssignment');
 const ExamResponse = require('./ExamResponse');
 const ExamResult = require('./ExamResult');
+const Pipeline = require('./Pipeline');
+const UserPipelineProgress = require('./UserPipelineProgress');
 
 // User - Exam Assignment (Many-to-Many through UserExamAssignment)
 User.belongsToMany(Exam, {
@@ -86,6 +88,16 @@ ExamResponse.belongsTo(Question, {
     as: 'question'
 });
 
+// Pipeline associations
+Pipeline.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+User.hasMany(Pipeline, { foreignKey: 'createdBy', as: 'pipelinesCreated' });
+
+UserPipelineProgress.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(UserPipelineProgress, { foreignKey: 'userId', as: 'pipelineProgress' });
+
+UserPipelineProgress.belongsTo(Pipeline, { foreignKey: 'pipelineId', as: 'pipeline' });
+Pipeline.hasMany(UserPipelineProgress, { foreignKey: 'pipelineId', as: 'userProgress' });
+
 // UserExamAssignment associations
 UserExamAssignment.belongsTo(User, {
     foreignKey: 'userId',
@@ -108,5 +120,7 @@ module.exports = {
     Question,
     UserExamAssignment,
     ExamResponse,
-    ExamResult
+    ExamResult,
+    Pipeline,
+    UserPipelineProgress
 }; 

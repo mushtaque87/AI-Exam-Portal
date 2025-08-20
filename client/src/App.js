@@ -7,6 +7,7 @@ import axios from 'axios';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import AdminDashboard from './components/admin/AdminDashboard';
+import PipelineManager from './components/admin/PipelineManager';
 import StudentDashboard from './components/student/StudentDashboard';
 import ExamList from './components/admin/ExamList';
 import UserList from './components/admin/UserList';
@@ -14,6 +15,7 @@ import ResultsList from './components/admin/ResultsList';
 import StudentExams from './components/student/StudentExams';
 import TakeExam from './components/student/TakeExam';
 import StudentResults from './components/student/StudentResults';
+import OrderPipeline from './components/student/OrderPipeline';
 import Navbar from './components/Navbar';
 
 // Context
@@ -132,6 +134,10 @@ function App() {
                             path="/admin/results"
                             element={user?.role === 'admin' ? <ResultsList /> : <Navigate to="/" />}
                         />
+                        <Route
+                            path="/admin/pipelines"
+                            element={user?.role === 'admin' ? <PipelineManager /> : <Navigate to="/" />}
+                        />
 
                         {/* Student Routes */}
                         <Route
@@ -149,6 +155,10 @@ function App() {
                         <Route
                             path="/student/results"
                             element={user?.role === 'student' ? <StudentResults /> : <Navigate to="/" />}
+                        />
+                        <Route
+                            path="/student/pipelines"
+                            element={user?.role === 'student' ? <OrderPipeline /> : <Navigate to="/" />}
                         />
 
                         {/* Catch all route */}

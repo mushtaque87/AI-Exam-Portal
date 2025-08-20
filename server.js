@@ -12,6 +12,7 @@ const userRoutes = require('./routes/users');
 const examRoutes = require('./routes/exams');
 const questionRoutes = require('./routes/questions');
 const resultRoutes = require('./routes/results');
+const pipelineRoutes = require('./routes/pipelines');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,7 +31,7 @@ app.use(limiter);
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
         ? [process.env.FRONTEND_URL || 'https://*.railway.app']
-        : ['http://localhost:3000'],
+        : ['http://localhost:3000', 'http://localhost:3001'],
     credentials: true
 }));
 
@@ -47,6 +48,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/results', resultRoutes);
+app.use('/api/pipelines', pipelineRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

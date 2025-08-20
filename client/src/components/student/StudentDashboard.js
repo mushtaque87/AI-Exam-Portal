@@ -51,18 +51,7 @@ const StudentDashboard = () => {
 
     return (
         <div>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
-                <img 
-                    src="/pmi-logo.png" 
-                    alt="PMI Logo" 
-                    style={{ 
-                        height: '40px',
-                        marginRight: '1rem',
-                        objectFit: 'contain'
-                    }} 
-                />
-                <h1 style={{ color: '#1e293b', margin: 0 }}>Student Dashboard</h1>
-            </div>
+            <h1 style={{ marginBottom: '2rem', color: '#1e293b' }}>Student Dashboard</h1>
 
             {/* Statistics Cards */}
             <div style={{
@@ -254,4 +243,4 @@ const StudentDashboard = () => {
     );
 };
 
-export default StudentDashboard;
+export default StudentDashboard; 
