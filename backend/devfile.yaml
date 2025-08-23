@@ -1,0 +1,57 @@
+schemaVersion: 2.2.0
+metadata:
+  name: exam-portal-backend
+  version: 1.0.0
+  displayName: Exam Portal Backend
+  description: Node.js backend for Exam Portal application
+  tags:
+    - nodejs
+    - express
+    - mysql
+components:
+  - name: nodejs
+    container:
+      image: registry.redhat.io/ubi8/nodejs-18:latest
+      memoryLimit: 1024Mi
+      mountSources: true
+      sourceMapping: /projects
+      env:
+        - name: NODE_ENV
+          value: production
+        - name: PORT
+          value: "8080"
+      endpoints:
+        - name: http-8080
+          targetPort: 8080
+          protocol: http
+commands:
+  - id: install
+    exec:
+      component: nodejs
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: npm install
+      group:
+        kind: build
+        isDefault: true
+  - id: run
+    exec:
+      component: nodejs
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: npm start
+      group:
+        kind: run
+        isDefault: true
+  - id: dev
+    exec:
+      component: nodejs
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: npm run dev
+      group:
+        kind: run
+  - id: setup
+    exec:
+      component: nodejs
+      workingDir: ${PROJECT_SOURCE}
+      commandLine: npm run setup
+      group:
+        kind: build
