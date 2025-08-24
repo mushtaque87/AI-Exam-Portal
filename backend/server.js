@@ -27,11 +27,16 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
+// Allow requests from your frontend
+// app.use(cors({
+//   origin: "http://localhost:3000", // your frontend URL
+//   credentials: true,               // if you need cookies/auth
+// }));
+
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
-        ? ['https://your-domain.com']
-        : ['http://localhost:3000'],
-    credentials: true
+  origin: 'http://localhost:3000', // frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parsing middleware
@@ -86,7 +91,7 @@ db.authenticate()
         return seedInitialData();
     })
     .then(() => {
-        app.listen(PORT, () => {
+        app.listen(PORT,'0.0.0.0', () => {
             console.log(`Server running on port ${PORT}`);
             console.log(`Environment: ${process.env.NODE_ENV}`);
         });

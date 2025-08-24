@@ -1,20 +1,20 @@
-# Multi-stage build for production
-FROM node:18-alpine AS backend-build
-WORKDIR /app
+FROM registry.access.redhat.com/ubi8/nodejs-18:latest
+
+USER root
+RUN mkdir -p /opt/app-root/src/uploads && chown -R 1001:0 /opt/app-root/src/uploads
+
+USER 1001
+
+WORKDIR /opt/app-root/src
+
 COPY package*.json ./
 RUN npm ci --only=production
 
-FROM node:18-alpine AS frontend-build
-WORKDIR /app/client
-COPY client/package*.json ./
-RUN npm ci
-COPY client/ ./
-RUN npm run build
-
-FROM node:18-alpine
-WORKDIR /app
-COPY --from=backend-build /app/node_modules ./node_modules
-COPY --from=frontend-build /app/client/build ./client/build
 COPY . .
-EXPOSE 5000
+
+EXPOSE 8080
+
+ENV NODE_ENV=development
+ENV PORT=8080
+
 CMD ["npm", "start"]

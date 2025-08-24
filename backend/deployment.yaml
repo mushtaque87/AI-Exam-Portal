@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exam-portal
+  labels:
+    app: exam-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exam-portal
+  template:
+    metadata:
+      labels:
+        app: exam-portal
+    spec:
+      containers:
+      - name: exam-portal
+        image: docker.io/mushtaque87/exam-portal:1.0
+        ports:
+        - containerPort: 3000   # Change if your backend uses a different port
+        envFrom:
+        - configMapRef:
+            name: exam-portal-config
+        - secretRef:
+            name: exam-portal-secret
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: exam-portal
+  labels:
+    app: exam-portal
+spec:
+  selector:
+    app: exam-portal
+  ports:
+  - name: http   # ✅ required in OpenShift
+    port: 80
+    targetPort: 3000
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: exam-portal
+  labels:
+    app: exam-portal
+spec:
+  to:
+    kind: Service
+    name: exam-portal
+  port:
+    targetPort: http   # ✅ must match Service port name

@@ -1,0 +1,52 @@
+#Create
+oc apply -f deployment.yaml
+oc apply -f service.yaml
+oc apply -f route.yaml
+
+#Get
+oc get deployment
+oc get service
+oc get route
+oc get route exam-portal
+oc get configmap
+oc get secret
+
+#Debug
+oc rsh exam-portal-6b8944478d-w49p8
+
+#Delete
+oc delete deployment exam-portal
+oc delete service exam-portal
+oc delete route exam-portal
+oc delete configmap exam-portal-config
+oc delete secret exam-portal-secret
+oc delete pvc exam-portal-pvc
+
+
+#Config Map
+oc create configmap exam-portal-config \
+  --from-literal=DB_HOST="mysql-688f695-mushtaque87.f.aivencloud.com" \
+  --from-literal=DB_NAME="exam_portal" \
+  --from-literal=DB_USER="avnadmin" \
+  --from-literal=DB_PORT="20879" \
+  --from-literal=DIALECT="mysql" \
+  --from-literal=DATABASE_URL="mysql://root:XXXX@mysql.railway.internal:3306/exam_portal" \
+  --from-literal=DATABASE_PUBLIC_URL="mysql://avnadmin:XXXX@mysql-688f695-mushtaque87.f.aivencloud.com:20879/exam_portal?ssl-mode=REQUIRED" \
+  --from-literal=JWT_SECRET="Y9Kj8Vf3z4gQw7uR2mT1aXp0nL6eBh5cS0dV3yZlG9U=" \
+  --from-literal=JWT_EXPIRES_IN="24h" \
+  --from-literal=PORT="5000" \
+  --from-literal=NODE_ENV="development" \
+  --from-literal=MAX_FILE_SIZE="10485760" \
+  --from-literal=UPLOAD_PATH="./uploads"
+
+#Secret 
+
+
+#Logs
+oc logs exam-portal-67fc78cc5f-fvjcj
+
+
+#docker
+docker buildx create --use
+docker buildx build --platform linux/amd64 -t docker.io/mushtaque87/exam-portal:1.0 --push .
+
